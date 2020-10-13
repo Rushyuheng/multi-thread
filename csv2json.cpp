@@ -4,10 +4,32 @@
 #include <fstream>
 #include <chrono>
 #include <vector>
+#include <sstream>
 
 using namespace std;
 
+void StringSeparation(int StartIndex, int endIndex,const vector<string> &input, vector<vector<int>> &result){
+	string delimiter = "|";
+	string token,s;
+	size_t pos;
+	int j = 0;
+	for(int i = StartIndex;i < endIndex;++i){
+		s = input.at(i);
+		pos = 0;
+		j = 0;
+		while ((pos = s.find(delimiter)) != string::npos) {
+    		token = s.substr(0, pos);//find substring
+			result.at(i).at(j) = stoi(token);
+    		s.erase(0, pos + delimiter.length());//delete substring and delimiter 
+			++j;
+		}
+		result.at(i).at(j) = stoi(s);//last token
+	}	
+}
+
+
 int main(int argc,char *argv[]){
+	chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();//timer start    	
 	vector<string> inputVector;
 	int numberOfThread = atoi(argv[1]);
 	vector<thread> mythread(numberOfThread); //memory for threads,no initialization yet
@@ -22,13 +44,46 @@ int main(int argc,char *argv[]){
 	while(getline(infile,readline)){
 		inputVector.push_back(readline);
 	}
+
+	const int len = inputVector.size();	
+	
+	int averageThreadCap = len / numberOfThread;//average number of string for one thread
+	int remainer = len % numberOfThread;
+	int startIndex = 0,EndIndex,threadCap;
+	vector<vector<int> > result(len,vector<int>(20));//result table after threads separation
+
+	for(int i = 0;i < numberOfThread;++i){
+		//load balacing
+		threadCap = averageThreadCap;
+		if(remainer > 0){
+			++threadCap;
+			--remainer;
+		}
+
+		EndIndex = startIndex + threadCap;
+		#ifdef debug
+			cout << startIndex << " " << EndIndex << endl;
+		#endif
+		mythread.at(i) = thread(StringSeparation,startIndex,EndIndex,ref(inputVector),ref(result));
+		startIndex = EndIndex;//update for next iteration
+	}
+	
+	for(int i = 0;i < numberOfThread;++i){
+		mythread.at(i).join();//join all thread before write file
+	}
 	
 	#ifdef debug
-		//unit test for read data in
-		for(int i = 0;i < inputVector.size() ;++i){
-			cout << inputVector.at(i) << endl;
+		for(int i = 0;i < len;++i){
+			for(int j = 0;j < 20;++j){
+				cout << result[i][j] << " ";
+			}
+				cout << endl;
 		}
 	#endif
+	//TODO write file in json form
 
+
+	chrono::steady_clock::time_point end = std::chrono::steady_clock::now();	
+	cout << "Elapsed time in nanoseconds : "<< chrono::duration_cast<chrono::nanoseconds>(end - begin).count()<< " ns" << endl;  
 	return 0;
 }
