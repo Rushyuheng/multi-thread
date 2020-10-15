@@ -44,6 +44,7 @@ int main(int argc,char *argv[]){
 	while(getline(infile,readline)){
 		inputVector.push_back(readline);
 	}
+	infile.close();
 
 	const int len = inputVector.size();	
 	
@@ -80,10 +81,29 @@ int main(int argc,char *argv[]){
 				cout << endl;
 		}
 	#endif
-	//TODO write file in json form
 
+	//write file in json form
+	ofstream outfile("./output.json");
+	outfile <<"[\n";
+	for(int i = 0;i < len - 1;++i){
+		outfile <<"  {\n";
+		for(int j = 0;j < 19;++j){
+			outfile <<"    \"col_" << j + 1 << "\":" << result.at(i).at(j) << ",\n";
+		}
+		outfile <<"    \"col_20\": " << result.at(i).at(19) << "\n";//last element don't need comma
+		outfile <<"  },\n";
+	}
+	outfile <<"  {\n";
+	for(int j = 0;j < 19;++j){
+		outfile <<"    \"col_" << j + 1 << "\":" << result.at(len - 1).at(j) << ",\n";
+	}
+	outfile <<"    \"col_20\": " << result.at(len - 1).at(19) << "\n";//last element don't need comma
+	outfile <<"  }\n";//last element don't need comma
+	outfile <<"]\n";
+
+	outfile.close();
 
 	chrono::steady_clock::time_point end = std::chrono::steady_clock::now();	
-	cout << "Elapsed time in nanoseconds : "<< chrono::duration_cast<chrono::nanoseconds>(end - begin).count()<< " ns" << endl;  
+	cout << "Elapsed time in milliseconds : "<< chrono::duration_cast<chrono::milliseconds>(end - begin).count()<< " ms" << endl;  
 	return 0;
 }
