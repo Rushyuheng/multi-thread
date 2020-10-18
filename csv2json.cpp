@@ -32,20 +32,25 @@ int main(int argc,char *argv[]){
 	chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();//timer start    	
 	vector<string> inputVector;
 	int numberOfThread = atoi(argv[1]);
-	vector<thread> mythread(numberOfThread); //memory for threads,no initialization yet
-
+	vector<thread> mythread(numberOfThread); //memory for threads,not initialize yet
+	
+	cout << "start reading data" << endl;	
+	//read csv file
     ifstream infile("./input.csv");
     if(!infile){
         cerr << "fail to open file : input.csv"  <<endl;
         exit(1);
     }
-	
+
 	string readline;
 	while(getline(infile,readline)){
 		inputVector.push_back(readline);
 	}
 	infile.close();
-
+	chrono::steady_clock::time_point rdata = std::chrono::steady_clock::now();   	
+	cout << "finish reading data at: "<< chrono::duration_cast<chrono::milliseconds>(rdata - begin).count() << "ms"<< endl;
+	cout << "start string tokenizing" << endl;
+	//mutithread string tokenize
 	const int len = inputVector.size();	
 	
 	int averageThreadCap = len / numberOfThread;//average number of string for one thread
@@ -62,9 +67,6 @@ int main(int argc,char *argv[]){
 		}
 
 		EndIndex = startIndex + threadCap;
-		#ifdef debug
-			cout << startIndex << " " << EndIndex << endl;
-		#endif
 		mythread.at(i) = thread(StringSeparation,startIndex,EndIndex,ref(inputVector),ref(result));
 		startIndex = EndIndex;//update for next iteration
 	}
@@ -72,16 +74,9 @@ int main(int argc,char *argv[]){
 	for(int i = 0;i < numberOfThread;++i){
 		mythread.at(i).join();//join all thread before write file
 	}
-	
-	#ifdef debug
-		for(int i = 0;i < len;++i){
-			for(int j = 0;j < 20;++j){
-				cout << result[i][j] << " ";
-			}
-				cout << endl;
-		}
-	#endif
-
+	chrono::steady_clock::time_point stoken = std::chrono::steady_clock::now();   	
+	cout << "finish string tokenizing at: "<< chrono::duration_cast<chrono::milliseconds>(stoken - begin).count() << "ms"<< endl;
+	cout << "start writing data" << endl;
 	//write file in json form
 	ofstream outfile("./output.json");
 	outfile <<"[\n";
@@ -98,11 +93,11 @@ int main(int argc,char *argv[]){
 		outfile <<"    \"col_" << j + 1 << "\":" << result.at(len - 1).at(j) << ",\n";
 	}
 	outfile <<"    \"col_20\": " << result.at(len - 1).at(19) << "\n";//last element don't need comma
-	outfile <<"  }\n";//last element don't need comma
+	outfile <<"  }\n";//last list don't need comma
 	outfile <<"]\n";
 
-	outfile.close();
-
+	outfile.close();	
+	cout << "finish writing data" << endl;
 	chrono::steady_clock::time_point end = std::chrono::steady_clock::now();	
 	cout << "Elapsed time in milliseconds : "<< chrono::duration_cast<chrono::milliseconds>(end - begin).count()<< " ms" << endl;  
 	return 0;
